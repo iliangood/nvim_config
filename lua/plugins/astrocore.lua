@@ -1,9 +1,12 @@
-if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
+-- if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
 
 -- AstroCore provides a central place to modify mappings, vim options, autocommands, and more!
 -- Configuration documentation can be found with `:h astrocore`
 -- NOTE: We highly recommend setting up the Lua Language Server (`:LspInstall lua_ls`)
 --       as this provides autocomplete and documentation while editing
+
+-- Создаем переменную для хранения таймера автосохранения вне функции
+local autosave_timer = nil
 
 ---@type LazySpec
 return {
@@ -23,6 +26,7 @@ return {
     diagnostics = {
       virtual_text = true,
       underline = true,
+      update_in_insert = false,
     },
     -- passed to `vim.filetype.add`
     filetypes = {
@@ -79,6 +83,52 @@ return {
 
         -- setting a mapping to false will disable it
         -- ["<C-S>"] = false,
+      },
+    },
+   autocmds = {
+      auto_save = {
+        {
+          -- Отслеживаем изменения текста и выход из режима вставки
+          event = { "TextChanged", "TextChangedI", "InsertLeave" },
+          desc = "Автосохранение с задержкой в 1 секунду и обновление ошибок в Normal режиме",
+          pattern = "*",
+          callback = function()
+            -- Проверяем базовые условия буфера
+            if vim.bo.readonly or vim.fn.expand("%") == "" or vim.bo.buftype ~= "" then
+              return
+            end
+
+            -- 1. ЛОГИКА АВТОСОХРАНЕНИЯ С ТАЙМЕРОМ
+            if vim.bo.modified then
+              if autosave_timer then
+                autosave_timer:stop()
+              else
+                local uv = vim.uv or vim.loop
+                autosave_timer = uv.new_timer()
+              end
+
+              autosave_timer:start(1000, 0, vim.schedule_wrap(function()
+                if vim.api.nvim_buf_is_valid(0) and vim.bo.modified then
+                  vim.cmd("silent update")
+                end
+                autosave_timer = nil
+              end))
+            end
+
+            -- 2. ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ ОШИБОК (Только в нормальном режиме)
+            -- vim.api.nvim_get_mode().mode -> "n" означает Normal mode
+            if vim.api.nvim_get_mode().mode == "n" then
+              vim.schedule(function()
+                if vim.api.nvim_buf_is_valid(0) then
+                  local bufnr = vim.api.nvim_get_current_buf()
+                  -- Перерисовываем виртуальный текст текущего буфера
+                  vim.diagnostic.show(nil, bufnr, nil, { virtual_text = true })
+                end
+              end)
+            end
+
+          end,
+        },
       },
     },
   },
