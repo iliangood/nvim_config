@@ -1,3 +1,15 @@
+-- Функция динамически ищет esp-clang от Espressif. Если не находит — берет системный.
+local function get_clangd_cmd()
+  local search_path = vim.fn.expand("~/.espressif/tools/esp-clang/*/esp-clang/bin/clangd")
+  local handle = io.popen("ls " .. search_path .. " 2>/dev/null | head -n 1")
+  if handle then
+    local res = handle:read("*a"):gsub("%s+", "")
+    handle:close()
+    if res ~= "" then return res end
+  end
+  return "clangd" -- Fallback на системный, если esp-clang не установлен
+end
+
 return {
   "AstroNvim/astrolsp",
   ---@type AstroLSPOpts
@@ -13,11 +25,10 @@ return {
           offsetEncoding = { "utf-16" },
         },
         cmd = {
-          "clangd",
+          get_clangd_cmd(), -- <-- Вызываем функцию автопоиска вместо жесткой строки
           "--background-index",
           "--clang-tidy",
           "--fallback-style=Chromium",
-          -- Оставляем только извлечение системных библиотек
           "--query-driver=**/*gcc*,**/*g++*",
         },
       },
