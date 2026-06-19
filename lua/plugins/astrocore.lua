@@ -89,7 +89,7 @@ return {
       auto_save = {
         {
           -- Отслеживаем изменения текста и выход из режима вставки
-          event = { "TextChanged", "TextChangedI", "InsertLeave" },
+          event = { "TextChanged", "InsertLeave" },
           desc = "Автосохранение с задержкой в 1 секунду и обновление ошибок в Normal режиме",
           pattern = "*",
           callback = function()
