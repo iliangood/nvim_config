@@ -2,17 +2,24 @@ return {
   "AstroNvim/astrolsp",
   ---@type AstroLSPOpts
   opts = {
-    -- Указываем серверы, которые нужно запускать напрямую из PATH
     servers = {
       "zls",
+      "clangd",
     },
-    -- Если вам нужно передать специфичные настройки в zls
     config = {
-      zls = {
-        -- Например, можно отключить форматирование сервером, если используете что-то другое
-        -- on_attach = function(client)
-        --   client.server_capabilities.documentFormattingProvider = false
-        -- end,
+      zls = {},
+      clangd = {
+        capabilities = {
+          offsetEncoding = { "utf-16" },
+        },
+        cmd = {
+          "clangd",
+          "--background-index",
+          "--clang-tidy",
+          "--fallback-style=Chromium",
+          -- Оставляем только извлечение системных библиотек
+          "--query-driver=**/*gcc*,**/*g++*",
+        },
       },
     },
   },
